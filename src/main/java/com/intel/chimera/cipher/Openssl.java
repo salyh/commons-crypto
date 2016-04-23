@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.intel.chimera.utils.NativeCodeLoader;
 import com.intel.chimera.utils.Utils;
+import com.sun.jna.ptr.PointerByReference;
 
 /**
  * OpenSSL cryptographic wrapper using JNI.
@@ -73,7 +74,7 @@ public final class Openssl {
     }
   }
 
-  private long context = 0;
+  private PointerByReference context;
   private final int algorithm;
   private final int padding;
 
@@ -101,7 +102,7 @@ public final class Openssl {
     return loadingFailureReason;
   }
 
-  private Openssl(long context, int algorithm, int padding) {
+  private Openssl(PointerByReference context, int algorithm, int padding) {
     this.context = context;
     this.algorithm = algorithm;
     this.padding = padding;
@@ -125,7 +126,7 @@ public final class Openssl {
     Transform transform = tokenizeTransformation(transformation);
     int algorithmMode = AlgorithmMode.get(transform.algorithm, transform.mode);
     int padding = Padding.get(transform.padding);
-    long context = OpensslNative.initContext(algorithmMode, padding);
+    PointerByReference context = OpensslNative.initContext(algorithmMode, padding);
     return new Openssl(context, algorithmMode, padding);
   }
 
@@ -301,15 +302,15 @@ public final class Openssl {
 
   /** Forcibly clean the context. */
   public void clean() {
-    if (context != 0) {
+    if (context != null) {
       OpensslNative.clean(context);
-      context = 0;
+      context = null;
     }
   }
 
   /** Checks whether context is initialized. */
   private void checkState() {
-    Utils.checkState(context != 0);
+    Utils.checkState(context != null);
   }
 
   @Override

@@ -30,6 +30,8 @@ import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.intel.chimera.cipher.OpensslNativeJna;
+
 
 /**
  * A helper to load the native code i.e. libchimera.so.
@@ -41,7 +43,7 @@ public class NativeCodeLoader {
   private static final Log LOG =
     LogFactory.getLog(NativeCodeLoader.class);
   
-  private static boolean nativeCodeLoaded = false;
+  /*private static boolean nativeCodeLoaded = false;
   
   static {
     // Try to load native library and set fallback flag appropriately
@@ -73,7 +75,7 @@ public class NativeCodeLoader {
       LOG.warn("Unable to load native library for the platform... " +
                "using builtin-java classes where applicable");
     }
-  }
+  }*/
 
   static File findNativeLibrary() {
     // Try to load the library in chimera.lib.path */
@@ -274,6 +276,11 @@ public class NativeCodeLoader {
    *         else <code>false</code>.
    */
   public static boolean isNativeCodeLoaded() {
-    return nativeCodeLoaded;
+      try {
+        OpensslNativeJna lib = OpensslNativeJna.INSTANCE;
+        return lib!=null;
+    } catch (Exception e) {
+        return false;
+    }
   }
 }

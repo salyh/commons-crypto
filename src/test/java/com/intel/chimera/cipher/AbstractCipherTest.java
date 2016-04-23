@@ -102,6 +102,7 @@ public abstract class AbstractCipherTest {
     try {
       enc.init(Cipher.ENCRYPT_MODE, key, iv);
     } catch (Exception e) {
+        e.printStackTrace();
       Assert.fail("AES failed initialisation - " + e.toString());
     }
 

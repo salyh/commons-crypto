@@ -19,16 +19,19 @@ package com.intel.chimera.cipher;
 
 import java.nio.ByteBuffer;
 
-/**
- * JNI interface of {@link Openssl} implementation. The native method in this class is
- * defined in OpensslNative.h(genereted by javah).
- */
+import com.sun.jna.ptr.PointerByReference;
+
 public class OpensslNative {
+    
+   private static final OpensslNativeJna jnaLib = OpensslNativeJna.INSTANCE;
+    
 
   /**
    * Declares a native method to initialize JNI field and method IDs.
    */
-  public native static void initIDs();
+  public static void initIDs() {
+      //noop
+  }
 
   /**
    * Declares a native method to initialize the cipher context.
@@ -37,15 +40,22 @@ public class OpensslNative {
    * @param padding The padding name of cipher
    * @return the context address of cipher
    */
-  public native static long initContext(int algorithm, int padding);
+  public static PointerByReference initContext(int algorithm, int padding) {
+      PointerByReference ptr = jnaLib.EVP_CIPHER_CTX_new();
+      jnaLib.EVP_CIPHER_CTX_set_padding(ptr, padding);
+      return ptr;
+  }
 
   /**
    * Declares a native method to initialize the cipher context.
    *
    * @return the context address of cipher
    */
-  public native static long init(long context, int mode, int alg, int padding,
-      byte[] key, byte[] iv);
+  public static PointerByReference init(PointerByReference context, int mode, int alg, int padding,
+      byte[] key, byte[] iv) {
+      jnaLib.EVP_CipherInit_ex(context, jnaLib.EVP_aes_128_cbc(), null, key, iv, mode);
+      return context;
+  }
 
   /**
    * Continues a multiple-part encryption/decryption operation. The data
@@ -60,9 +70,20 @@ public class OpensslNative {
    * @param maxOutputLength The maximum length for output
    * @return The number of bytes stored in output
    */
-  public native static int update(long context, ByteBuffer input,
+  public static int update(PointerByReference context, ByteBuffer input,
       int inputOffset, int inputLength, ByteBuffer output, int outputOffset,
-      int maxOutputLength);
+      int maxOutputLength) {
+      int[] len = new int[1];
+      
+      int oldPos = input.position();
+      byte[] in = new byte[inputLength];
+      input.position(inputOffset);
+      input.get(in, 0, inputLength);
+      input.position(oldPos);
+      
+      jnaLib.EVP_CipherUpdate(context, output, len, in, in.length);
+      return len[0];
+  }
 
   /**
    * Continues a multiple-part encryption/decryption operation. The data
@@ -77,9 +98,11 @@ public class OpensslNative {
    * @param maxOutputLength The maximum length for output
    * @return The number of bytes stored in output
    */
-  public native static int updateByteArray(long context, byte[] input,
+  public static int updateByteArray(PointerByReference context, byte[] input,
       int inputOffset, int inputLength, byte[] output, int outputOffset,
-      int maxOutputLength);
+      int maxOutputLength) {
+      return update(context, ByteBuffer.wrap(input), inputOffset, inputLength, ByteBuffer.wrap(output), outputOffset, maxOutputLength);
+  }
 
   /**
    * Finishes a multiple-part operation. The data is encrypted or decrypted,
@@ -91,8 +114,18 @@ public class OpensslNative {
    * @param maxOutputLength The maximum length for output
    * @return The number of bytes stored in output
    */
-  public native static int doFinal(long context, ByteBuffer output, int offset,
-      int maxOutputLength);
+  public static int doFinal(PointerByReference context, ByteBuffer output, int offset,
+      int maxOutputLength) {
+      int[] len = new int[1];
+      output.position(offset);
+      
+      if(output.remaining() < maxOutputLength) {
+          
+      }
+      
+      jnaLib.EVP_CipherFinal_ex(context, output, len);
+      return len[0];
+  }
 
   /**
    * Finishes a multiple-part operation. The data is encrypted or decrypted,
@@ -104,13 +137,17 @@ public class OpensslNative {
    * @param maxOutputLength The maximum length for output
    * @return The number of bytes stored in output
    */
-  public native static int doFinalByteArray(long context, byte[] output, int offset,
-      int maxOutputLength);
+  public static int doFinalByteArray(PointerByReference context, byte[] output, int offset,
+      int maxOutputLength) {
+      return doFinal(context,ByteBuffer.wrap(output), offset, maxOutputLength);
+  }
 
   /**
    * Cleans the context at native.
    *
    * @param context The cipher context address
    */
-  public native static void clean(long context);
+  public static void clean(PointerByReference context) {
+      jnaLib.EVP_CIPHER_CTX_free(context);
+  }
 }

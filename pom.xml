@@ -290,27 +290,6 @@
     </pluginManagement>
     <plugins>
       <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>make</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target name="make">
-                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
-                         classpathref="maven.plugin.classpath"/>
-                <exec executable="make" failonerror="true" dir="${project.basedir}">
-                  <arg value="${target.name}"/>
-                </exec>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
         <version>${apache-rat-plugin.version}</version>
@@ -367,6 +346,11 @@
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j-api.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>4.2.2</version>
     </dependency>
   </dependencies>
 </project>
