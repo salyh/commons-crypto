@@ -197,6 +197,10 @@ static FARPROC WINAPI do_dlsym(JNIEnv *env, HMODULE handle, LPCSTR symbol) {
 #include "winutils.h"
 #endif
 
+#ifdef MAC_OS
+#include <stddef.h>
+#endif
+
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
