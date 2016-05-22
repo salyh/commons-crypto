@@ -37,7 +37,7 @@ public class OpensslJnaCipherTest extends AbstractCipherTest {
         transformations = new CipherTransformation[] {
                 CipherTransformation.AES_CBC_NOPADDING,
                 CipherTransformation.AES_CBC_PKCS5PADDING,
-                CipherTransformation.AES_CTR_NOPADDING,
+                CipherTransformation.AES_CTR_NOPADDING
                 };
         cipherClass = OpensslJnaCipher.class.getName();
     }

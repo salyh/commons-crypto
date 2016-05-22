@@ -19,10 +19,10 @@ package org.apache.commons.crypto.jna;
 
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -35,14 +35,12 @@ import javax.crypto.spec.IvParameterSpec;
 
 import org.apache.commons.crypto.cipher.CipherTransformation;
 import org.apache.commons.crypto.cipher.CryptoCipher;
-import org.apache.commons.crypto.cipher.Openssl;
-import org.apache.commons.crypto.cipher.OpensslNative;
 import org.apache.commons.crypto.utils.Utils;
 
 import com.sun.jna.ptr.PointerByReference;
 
 /**
- * Implements the CryptoCipher using JNI into OpenSSL.
+ * Implements the CryptoCipher using JNA into OpenSSL.
  */
 public class OpensslJnaCipher implements CryptoCipher {
     private final Properties props;
@@ -53,12 +51,8 @@ public class OpensslJnaCipher implements CryptoCipher {
     private final AlgorithmMode algMode;
     private final int padding;
     
-    static {
-        opensslNativeJna.ERR_load_crypto_strings();
-    }
-
     /**
-     * Constructs a {@link CryptoCipher} using JNI into OpenSSL
+     * Constructs a {@link CryptoCipher} using JNA into OpenSSL
      *
      * @param props properties for OpenSSL cipher
      * @param transformation transformation for OpenSSL cipher
@@ -71,14 +65,13 @@ public class OpensslJnaCipher implements CryptoCipher {
         Transform transform = tokenizeTransformation(transformation.getName());
         algMode = AlgorithmMode.valueOf(transform.algorithm + "_" + transform.mode);
         
-        //TODO support key length 128/256 bit
         if(algMode != AlgorithmMode.AES_CBC && algMode != AlgorithmMode.AES_CTR) {
             throw new GeneralSecurityException("unknown algorithm "+transform.algorithm + "_" + transform.mode);
         }
 
         padding = Padding.get(transform.padding);
         context = opensslNativeJna.EVP_CIPHER_CTX_new();
-        
+
     }
 
     /**
@@ -188,11 +181,9 @@ public class OpensslJnaCipher implements CryptoCipher {
     @Override
     public int update(byte[] input, int inputOffset, int inputLen,
             byte[] output, int outputOffset) throws ShortBufferException {
-        int[] outlen = new int[1];
-        int retVal = opensslNativeJna.EVP_CipherUpdate(context, ByteBuffer.wrap(output, outputOffset, output.length-outputOffset), outlen, ByteBuffer.wrap(input, inputOffset, inputLen), inputLen);
-        throwOnError(retVal);
-        int len = outlen[0];
-        return len;
+        ByteBuffer outputBuf = ByteBuffer.wrap(output, outputOffset, output.length-outputOffset);
+        ByteBuffer inputBuf = ByteBuffer.wrap(input, inputOffset, inputLen);
+        return update(inputBuf, outputBuf);
     }
     /**
      * Encrypts or decrypts data in a single-part operation, or finishes a
@@ -217,29 +208,12 @@ public class OpensslJnaCipher implements CryptoCipher {
     public int doFinal(ByteBuffer inBuffer, ByteBuffer outBuffer)
             throws ShortBufferException, IllegalBlockSizeException,
             BadPaddingException {
-        
-        System.out.println(inBuffer.position()+" "+inBuffer.remaining());
-        
-        /*if(inBuffer.remaining() == 0) {
-            outBuffer.position(outBuffer.limit());
-            return outBuffer.limit();
-        }*/
-        
         int uptLen = update(inBuffer, outBuffer);
-        
-        
-        
-        /*if(uptLen == 0 && outBuffer.position() == 0) {
-            outBuffer.position(outBuffer.limit());
-            return 0;
-        }*/
-        
-        //System.out.println(uptLen+" "+outBuffer.position()+" "+outBuffer.remaining());
         int[] outlen = new int[1];
         int retVal = opensslNativeJna.EVP_CipherFinal_ex(context, outBuffer, outlen);
         throwOnError(retVal);
         int len = uptLen + outlen[0];
-        //outBuffer.position(outBuffer.position() + len);
+        outBuffer.position(outBuffer.position() + outlen[0]);
         return len;
     }
 
@@ -268,12 +242,9 @@ public class OpensslJnaCipher implements CryptoCipher {
     public int doFinal(byte[] input, int inputOffset, int inputLen,
             byte[] output, int outputOffset) throws ShortBufferException,
             IllegalBlockSizeException, BadPaddingException {
-        int uptLen = update(input, inputOffset, inputLen, output, outputOffset);
-        int[] outlen = new int[1];
-        int retVal = opensslNativeJna.EVP_CipherFinal_ex(context, output, outlen);
-        //int retVal = opensslNativeJna.EVP_CipherFinal_ex(context, output, outputOffset+uptLen);
-        throwOnError(retVal);
-        return uptLen + outlen[0];
+        ByteBuffer outputBuf = ByteBuffer.wrap(output, outputOffset, output.length-outputOffset);
+        ByteBuffer inputBuf = ByteBuffer.wrap(input, inputOffset, inputLen);
+        return doFinal(inputBuf, outputBuf);
     }
 
     /**
@@ -281,24 +252,24 @@ public class OpensslJnaCipher implements CryptoCipher {
      */
     @Override
     public void close() {
-        opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
-    }
-    
-    private void throwOnError(int retVal) {
-        
-        long err = opensslNativeJna.ERR_peek_error();
-        String errdesc = opensslNativeJna.ERR_error_string(err, null);
-        
-        //close();
-        
-        if(retVal != 1) {
-            throw new RuntimeException("return code "+retVal+" from openssl. Err code is "+err+": "+errdesc);
+        if(context != null) {
+            opensslNativeJna.EVP_CIPHER_CTX_free(context);
         }
     }
     
-    
-    
-    //TODO DUPLICATED CODE
+    private void throwOnError(int retVal) {  
+        if(retVal != 1) {
+            long err = opensslNativeJna.ERR_peek_error();
+            String errdesc = opensslNativeJna.ERR_error_string(err, null);
+            
+            if(context != null) {
+                opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
+            }
+            throw new RuntimeException("return code "+retVal+" from openssl. Err code is "+err+": "+errdesc);
+        }
+    }
+
+    //TODO DUPLICATED CODE, needs cleanup
     /** Nested class for algorithm, mode and padding. */
     private static class Transform {
         final String algorithm;
