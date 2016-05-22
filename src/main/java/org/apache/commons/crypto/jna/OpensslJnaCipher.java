@@ -253,7 +253,7 @@ public class OpensslJnaCipher implements CryptoCipher {
     @Override
     public void close() {
         if(context != null) {
-            opensslNativeJna.EVP_CIPHER_CTX_free(context);
+            //opensslNativeJna.EVP_CIPHER_CTX_free(context);
         }
     }
     
@@ -263,7 +263,7 @@ public class OpensslJnaCipher implements CryptoCipher {
             String errdesc = opensslNativeJna.ERR_error_string(err, null);
             
             if(context != null) {
-                opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
+                //opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
             }
             throw new RuntimeException("return code "+retVal+" from openssl. Err code is "+err+": "+errdesc);
         }
