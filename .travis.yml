@@ -1,0 +1,8 @@
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -qqy openssl libssl-dev build-essential
+language: java
+jdk:
+- oraclejdk7
+- oraclejdk8
+ No newline at end of file
