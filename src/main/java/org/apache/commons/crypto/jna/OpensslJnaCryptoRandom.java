@@ -101,13 +101,17 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
                     
                 }
             } else {
+                System.out.println("Unable to find rdrand engine");
                 LOG.debug("Unable to find rdrand engine");
             }
             
         } catch (Throwable e) {
+            System.out.println("Unable load or initialize rdrand engine due to "+e);
+            e.printStackTrace();
             LOG.debug("Unable load or initialize rdrand engine due to "+e,e);
         }
         
+        System.out.println("Will use rdrand engine: "+rdrandLoaded);
         LOG.debug("Will use rdrand engine: "+rdrandLoaded);
         rdrandEnabled = rdrandLoaded;
         
@@ -181,11 +185,11 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
     public void close() {
         
         if(rdrandEngine != null) {
-            opensslNativeJna.ENGINE_finish(rdrandEngine);
-            opensslNativeJna.ENGINE_free(rdrandEngine);
+          //  opensslNativeJna.ENGINE_finish(rdrandEngine);
+          //  opensslNativeJna.ENGINE_free(rdrandEngine);
         }
         
-        opensslNativeJna.ENGINE_cleanup();
+        //opensslNativeJna.ENGINE_cleanup();
         
         //cleanup locks
         //opensslNativeJna.CRYPTO_set_locking_callback(null);
