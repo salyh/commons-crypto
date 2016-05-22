@@ -1,0 +1,7 @@
+machine:
+  java:
+    version: openjdk8
+
+dependencies:
+  pre:
+    - sudo apt-get -qq update; sudo apt-get install -qqy openssl libssl-dev build-essential
