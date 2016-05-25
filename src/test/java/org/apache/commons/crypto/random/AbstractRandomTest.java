@@ -17,10 +17,15 @@
  */
 package org.apache.commons.crypto.random;
 
+import java.lang.Thread.State;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
+
+import junit.framework.Assert;
 
 public abstract class AbstractRandomTest {
 
@@ -40,6 +45,32 @@ public abstract class AbstractRandomTest {
         checkRandomBytes(random, 256);
         random.close();
     }
+    
+    @Test(timeout = 120000)
+    public void testRandomBytesMultiThreaded() throws Exception {
+        final int threadCount = 100;
+        final CryptoRandom random = getCryptoRandom();
+        final List<Thread> threads = new ArrayList<Thread>(threadCount);
+        
+        for(int i=0; i< threadCount; i++) {
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    checkRandomBytes(random, 10);
+                    checkRandomBytes(random, 100000);
+                }
+            });
+            t.start();
+            threads.add(t);
+        }
+        
+        for(Thread t: threads) {
+            if(!t.getState().equals(State.NEW)) {
+                t.join();
+            }
+        }
+        
+        random.close();
+    }
 
     /**
      * Test will timeout if secure random implementation always returns a
@@ -50,7 +81,11 @@ public abstract class AbstractRandomTest {
         byte[] bytes1 = new byte[len];
         random.nextBytes(bytes);
         random.nextBytes(bytes1);
-
+        
+        if(Arrays.equals(bytes, new byte[len])) {
+            Assert.fail("byte array only contains zeros");
+        }
+        
         while (Arrays.equals(bytes, bytes1)) {
             random.nextBytes(bytes1);
         }

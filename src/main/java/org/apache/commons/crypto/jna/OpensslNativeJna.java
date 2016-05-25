@@ -20,9 +20,9 @@ package org.apache.commons.crypto.jna;
 
 import java.nio.ByteBuffer;
 
-import com.sun.jna.Callback;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.NativeLong;
 import com.sun.jna.ptr.PointerByReference;
 
 public interface OpensslNativeJna extends Library {
@@ -39,21 +39,21 @@ public interface OpensslNativeJna extends Library {
     
     class Initializer {
         static {
-            Native.setProtected(true);
+            //Native.setProtected(true);
             INSTANCE.ERR_load_crypto_strings();
             System.out.println(INSTANCE.SSLeay_version(0)+", protected mode supported: "+Native.isProtected());
         }
     }
     
     //misc
-    long SSLeay();
+    NativeLong SSLeay();
     String SSLeay_version(int type);
     void ERR_load_crypto_strings();
-    long ERR_peek_error();
-    String ERR_error_string(long err, char[] null_);
-    String ERR_lib_error_string(long err);
-    String ERR_func_error_string(long err);
-    String ERR_reason_error_string(long err);
+    NativeLong ERR_peek_error();
+    String ERR_error_string(NativeLong err, char[] null_);
+    //String ERR_lib_error_string(NativeLong err);
+    //String ERR_func_error_string(NativeLong err);
+    //String ERR_reason_error_string(NativeLong err);
     
     //en-/decryption
     PointerByReference EVP_CIPHER_CTX_new();
@@ -84,7 +84,7 @@ public interface OpensslNativeJna extends Library {
     void ENGINE_load_rdrand();
     
     //callback multithreading
-    public interface Id_function_cb extends Callback {
+    /*public interface Id_function_cb extends Callback {
         long invoke ();
     }
    
@@ -102,6 +102,7 @@ public interface OpensslNativeJna extends Library {
         }
     };
     
+    int CRYPTO_num_locks();
     void CRYPTO_set_id_callback(Id_function_cb id_function);
-    void CRYPTO_set_locking_callback(Locking_function_cb locking_function);
+    void CRYPTO_set_locking_callback(Locking_function_cb locking_function);*/
 }

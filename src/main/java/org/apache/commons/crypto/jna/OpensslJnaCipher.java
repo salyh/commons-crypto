@@ -37,6 +37,7 @@ import org.apache.commons.crypto.cipher.CipherTransformation;
 import org.apache.commons.crypto.cipher.CryptoCipher;
 import org.apache.commons.crypto.utils.Utils;
 
+import com.sun.jna.NativeLong;
 import com.sun.jna.ptr.PointerByReference;
 
 /**
@@ -253,17 +254,18 @@ public class OpensslJnaCipher implements CryptoCipher {
     @Override
     public void close() {
         if(context != null) {
-            //opensslNativeJna.EVP_CIPHER_CTX_free(context);
+            opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
+            opensslNativeJna.EVP_CIPHER_CTX_free(context);
         }
     }
     
     private void throwOnError(int retVal) {  
         if(retVal != 1) {
-            long err = opensslNativeJna.ERR_peek_error();
+            NativeLong err = opensslNativeJna.ERR_peek_error();
             String errdesc = opensslNativeJna.ERR_error_string(err, null);
             
             if(context != null) {
-                //opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
+                opensslNativeJna.EVP_CIPHER_CTX_cleanup(context);
             }
             throw new RuntimeException("return code "+retVal+" from openssl. Err code is "+err+": "+errdesc);
         }

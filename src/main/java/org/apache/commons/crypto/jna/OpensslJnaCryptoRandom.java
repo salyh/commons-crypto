@@ -21,14 +21,13 @@ import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.crypto.random.CryptoRandom;
 import org.apache.commons.crypto.utils.Utils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.sun.jna.NativeLong;
 import com.sun.jna.ptr.PointerByReference;
 
 /**
@@ -55,7 +54,6 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
     private final static OpensslNativeJna opensslNativeJna = OpensslNativeJna.INSTANCE;
     private final boolean rdrandEnabled;
     private PointerByReference rdrandEngine;
-    private static Lock LOCK = new ReentrantLock();
 
     /**
      * Constructs a {@link OpensslJnaCryptoRandom}.
@@ -69,24 +67,6 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
 
         boolean rdrandLoaded = false;
         try {
-            
-            opensslNativeJna.CRYPTO_set_id_callback(OpensslNativeJna.default_id_function);
-            opensslNativeJna.CRYPTO_set_locking_callback(new OpensslNativeJna.Locking_function_cb() {
-                
-                @Override
-                public void invoke(int mode, int n, String file, int line) {
-                    boolean lock = ((1&mode) != 0);
-                    
-                    if(lock) {
-                        LOCK.lock();
-                        //System.out.println("LOCK: "+n);
-                    } else {
-                        LOCK.unlock();
-                        //System.out.println("UNLOCK: "+n);
-                    }
-                }
-            });
-            
             opensslNativeJna.ENGINE_load_rdrand();
             rdrandEngine = opensslNativeJna.ENGINE_by_id("rdrand");
             int ENGINE_METHOD_RAND = 0x0008;
@@ -98,25 +78,20 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
                     if(rc2 != 0) {
                         rdrandLoaded = true;
                     }
-                    
                 }
             } else {
-                System.out.println("Unable to find rdrand engine");
                 LOG.debug("Unable to find rdrand engine");
             }
             
         } catch (Throwable e) {
-            System.out.println("Unable load or initialize rdrand engine due to "+e);
-            e.printStackTrace();
             LOG.debug("Unable load or initialize rdrand engine due to "+e,e);
         }
         
-        System.out.println("Will use rdrand engine: "+rdrandLoaded);
         LOG.debug("Will use rdrand engine: "+rdrandLoaded);
         rdrandEnabled = rdrandLoaded;
         
-        if(!rdrandLoaded && rdrandEngine != null) {
-            close();
+        if(!rdrandLoaded) {
+            closeRdrandEngine();
         }
     }
 
@@ -126,19 +101,20 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
      * @param bytes the array to be filled in with random bytes.
      */
     @Override
-    public void nextBytes(byte[] bytes) {
+    public synchronized void nextBytes(byte[] bytes) {
+        //this method is synchronized for now
+        //to support multithreading https://wiki.openssl.org/index.php/Manual:Threads(3) needs to be done
         
         if(rdrandEnabled && opensslNativeJna.RAND_get_rand_method().equals(opensslNativeJna.RAND_SSLeay())) {
+            close();
             throw new RuntimeException("rdrand should be used but default is detected");
         }
         
         ByteBuffer buf = ByteBuffer.allocateDirect(bytes.length);
-        if(opensslNativeJna.RAND_bytes(buf, bytes.length) == 1) {
-            buf.rewind();
-            buf.get(bytes,0, bytes.length);
-        } else {
-            throw new RuntimeException("Unable to get random data");
-        }
+        int retVal = opensslNativeJna.RAND_bytes(buf, bytes.length);
+        throwOnError(retVal);
+        buf.rewind();
+        buf.get(bytes,0, bytes.length);
     }
 
     /**
@@ -183,17 +159,20 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
      */
     @Override
     public void close() {
-        
-        if(rdrandEngine != null) {
-          //  opensslNativeJna.ENGINE_finish(rdrandEngine);
-          //  opensslNativeJna.ENGINE_free(rdrandEngine);
-        }
-        
-        //opensslNativeJna.ENGINE_cleanup();
+        closeRdrandEngine();
+        opensslNativeJna.ENGINE_cleanup();
         
         //cleanup locks
         //opensslNativeJna.CRYPTO_set_locking_callback(null);
         //LOCK.unlock();
+    }
+    
+    private void closeRdrandEngine() {
+        
+        if(rdrandEngine != null) {
+            opensslNativeJna.ENGINE_finish(rdrandEngine);
+            opensslNativeJna.ENGINE_free(rdrandEngine);
+        }
     }
 
     /**
@@ -203,5 +182,16 @@ public class OpensslJnaCryptoRandom extends Random implements CryptoRandom {
      */
     public boolean isRdrandEnabled() {
         return rdrandEnabled;
+    }
+    
+    private void throwOnError(int retVal) {  
+        if(retVal != 1) {
+            NativeLong err = opensslNativeJna.ERR_peek_error();
+            String errdesc = opensslNativeJna.ERR_error_string(err, null);
+            
+            close();
+            
+            throw new RuntimeException("return code "+retVal+" from openssl. Err code is "+err+": "+errdesc);
+        }
     }
 }
