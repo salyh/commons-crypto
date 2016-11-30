@@ -172,9 +172,9 @@ Linux-armhf_COMMONS_CRYPTO_FLAGS:=
 Mac-x86_CC        := gcc -arch i386
 Mac-x86_CXX       := g++ -arch i386
 Mac-x86_STRIP     := strip -x
-Mac-x86_CFLAGS    := -Ilib/inc_mac -I$(JAVA_HOME)/include -O2 -fPIC -mmacosx-version-min=10.4 -fvisibility=hidden -I/usr/local/include
-Mac-x86_CXXFLAGS  := -Ilib/inc_mac -I$(JAVA_HOME)/include -O2 -fPIC -mmacosx-version-min=10.4 -fvisibility=hidden -I/usr/local/include
-Mac-x86_LINKFLAGS := -dynamiclib -static-libgcc -L/usr/local/lib
+Mac-x86_CFLAGS    := -I/usr/local/opt/openssl/include -I$(JAVA_HOME)/include -O2 -fPIC -mmacosx-version-min=10.4 -fvisibility=hidden
+Mac-x86_CXXFLAGS  := $(Mac-x86_CFLAGS)
+Mac-x86_LINKFLAGS := -dynamiclib -L/usr/local/opt/openssl/lib -lssl
 Mac-x86_LIBNAME   := libcommons-crypto.jnilib
 Mac-x86_COMMONS_CRYPTO_FLAGS  :=
 
@@ -183,7 +183,7 @@ Mac-x86_64_CXX       := g++ -arch $(OS_ARCH)
 Mac-x86_64_STRIP     := strip -x
 Mac-x86_64_CFLAGS    := -I/usr/local/opt/openssl/include -I$(JAVA_HOME)/include -O2 -fPIC -mmacosx-version-min=10.5 -fvisibility=hidden
 Mac-x86_64_CXXFLAGS  := $(Mac-x86_64_CFLAGS)
-Mac-x86_64_LINKFLAGS := -dynamiclib -L/usr/local/opt/openssl/lib
+Mac-x86_64_LINKFLAGS := -dynamiclib -L/usr/local/opt/openssl/lib -lssl
 Mac-x86_64_LIBNAME   := libcommons-crypto.jnilib
 Mac-x86_64_COMMONS_CRYPTO_FLAGS  :=
 
@@ -226,8 +226,8 @@ LIBNAME   := $($(os_arch)_LIBNAME)
 COMMONS-CRYPTO_FLAGS := $($(os_arch)_COMMONS-CRYPTO_FLAGS)
 
 
-CFLAGS := $(CFLAGS) -Ilib/include -I/usr/include -I"$(SRC_NATIVE)/org/apache/commons/crypto/"
-CXXFLAGS := $(CXXFLAGS) -Ilib/include  -I/usr/include
+CFLAGS := $(CFLAGS) -Ilib/include -I"$(SRC_NATIVE)/org/apache/commons/crypto/"
+CXXFLAGS := $(CXXFLAGS) -Ilib/include
 ifneq ($(jni_include),)
 CFLAGS := $(CFLAGS) -I"$(jni_include)" -I"$(TARGET)/jni-classes/org/apache/commons/crypto/cipher" -I"$(TARGET)/jni-classes/org/apache/commons/crypto/random"
 CXXFLAGS := $(CXXFLAGS) -I"$(jni_include)" -I"$(TARGET)/jni-classes/org/apache/commons/crypto/cipher" -I"$(TARGET)/jni-classes/org/apache/commons/crypto/random"
