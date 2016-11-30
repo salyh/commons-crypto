@@ -40,6 +40,8 @@ final class NativeCodeLoader {
 
     private static final Throwable loadingError;
 
+    private static String nativeLibLocation;
+
     /**
      * The private constructor of {@link NativeCodeLoader}.
      */
@@ -62,9 +64,11 @@ final class NativeCodeLoader {
             File nativeLibFile = findNativeLibrary();
             if (nativeLibFile != null) {
                 // Load extracted or specified native library.
-                System.load(nativeLibFile.getAbsolutePath());
+            	nativeLibLocation = nativeLibFile.getAbsolutePath();
+                System.load(nativeLibLocation);
             } else {
                 // Load preinstalled library (in the path -Djava.library.path)
+            	nativeLibLocation = "DEFAULT";
                 System.loadLibrary("commons-crypto");
             }
             return null; // OK
@@ -268,5 +272,14 @@ final class NativeCodeLoader {
      */
     static Throwable getLoadingError() {
         return loadingError;
+    }
+    
+    /**
+     * Gets the absolute file location of the loaded native library.
+     * 
+     * @return null, if no native library was loaded or "DEFAULT" if library was loaded from java.library.path
+     */
+    static String getNativeLibLocation() {
+        return nativeLibLocation;
     }
 }

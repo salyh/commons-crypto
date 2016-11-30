@@ -64,6 +64,10 @@ public class NativeCodeLoaderTest {
     @Test
     public void testOpenSslVersion() {
     	Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+    	System.out.println("** INFO: nativeLibLocation: " 
+                + NativeCodeLoader.getNativeLibLocation());
+    	System.out.println("** INFO: java.library.path: " 
+                + System.getProperty("java.library.path"));
     	final long openSsl101cVersion = 0x1000103f;
     	Assert.assertTrue(OpenSslInfoNative.SSLeayVersion(0) 
     			+ " is too old. Version 1.0.1c or newer is necessary.", OpenSslInfoNative.SSLeay() >= openSsl101cVersion);
