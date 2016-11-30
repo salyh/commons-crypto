@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -31,14 +32,41 @@ import org.junit.Test;
 public class NativeCodeLoaderTest {
 
     @Test
-    public void test() {
+    public void test() {    	
+    	
+    	final boolean forceNativeCodeLoaded = 
+    			Boolean.getBoolean(Crypto.CONF_PREFIX+"test.force_native_code_loaded");
+    	
+    	System.out.println("** INFO: Native code is enforced: "+forceNativeCodeLoaded);
+    	
         if (NativeCodeLoader.isNativeCodeLoaded()) {
-            // TODO display versions once available
-            System.out.println("** INFO: Native (JNI) code loaded successfully");
+            System.out.println("** INFO: Native (JNI) code loaded successfully. ("
+                + OpenSslInfoNative.NativeName()
+                + " "
+                + OpenSslInfoNative.NativeVersion()
+                + " "
+                + OpenSslInfoNative.NativeTimeStamp()
+                + ")"
+            );
+            System.out.println("** INFO: "+OpenSslInfoNative.SSLeayVersion(0)
+                + " (0x"+Long.toHexString(OpenSslInfoNative.SSLeay())+")");
         } else {
             System.out.println("** WARN: Native (JNI) code was not loaded: " 
                 + NativeCodeLoader.getLoadingError());
+            
+            if(forceNativeCodeLoaded) {
+            	Assert.fail("Native code could be loaded although native code is enforced. Reason "
+                + NativeCodeLoader.getLoadingError());
+            }
         }
+    }
+    
+    @Test
+    public void testOpenSslVersion() {
+    	Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+    	final long openSsl101cVersion = 0x1000103f;
+    	Assert.assertTrue(OpenSslInfoNative.SSLeayVersion(0) 
+    			+ " is too old. Version 1.0.1c or newer is necessary.", OpenSslInfoNative.SSLeay() >= openSsl101cVersion);
     }
 
     @Test
